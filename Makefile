@@ -20,10 +20,13 @@ check:	rclone
 
 doc:	rclone.1 MANUAL.html MANUAL.txt
 
-deb: fakeroot
+deb: fakeroot bundle
 	bundle exec fpm -s dir -t deb -n rclone -v $(LAST_TAG) --iteration $(ITERATION) \
 		--url "http://rclone.org" --description "rclone is a command line program to sync files to and from many cloud storage services" \
 		-C fakeroot --license "MIT" usr
+
+bundle:
+	bundle install --deployment
 
 fakeroot: rclone doc
 	rm -fr fakeroot
