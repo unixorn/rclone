@@ -4,3 +4,4 @@ rclone
 rclonetest/rclonetest
 build
 docs/public
+fakeroot

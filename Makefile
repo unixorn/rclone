@@ -2,6 +2,7 @@ SHELL = /bin/bash
 TAG := $(shell git describe --tags)
 LAST_TAG := $(shell git describe --tags --abbrev=0)
 NEW_TAG := $(shell echo $(LAST_TAG) | perl -lpe 's/v//; $$_ += 0.01; $$_ = sprintf("v%.2f", $$_)')
+ITERATION := $(shell git rev-list HEAD --count)
 
 rclone:
 	@go version
@@ -18,6 +19,21 @@ check:	rclone
 	golint ./... | grep -E -v '(StorageUrl|CdnUrl)' ; test $$? -eq 1
 
 doc:	rclone.1 MANUAL.html MANUAL.txt
+
+deb: fakeroot
+	bundle exec fpm -s dir -t deb -n rclone -v $(LAST_TAG) --iteration $(ITERATION) \
+		--url "http://rclone.org" --description "rclone is a command line program to sync files to and from many cloud storage services" \
+		-C fakeroot --license "MIT" usr
+
+fakeroot: rclone doc
+	rm -fr fakeroot
+	mkdir -p fakeroot/usr/bin
+	mkdir -p fakeroot/usr/share/rclone
+	mkdir -p fakeroot/usr/share/man/man1
+	cp rclone fakeroot/usr/bin
+	cp rclone.1 fakeroot/usr/share/man/man1
+	cp MANUAL.txt MANUAL.html MANUAL.md fakeroot/usr/share/rclone
+	sudo chown -R root fakeroot/usr
 
 rclone.1:	MANUAL.md
 	pandoc -s --from markdown --to man MANUAL.md -o rclone.1
@@ -40,6 +56,7 @@ clean:
 	find . -name \*~ | xargs -r rm -f
 	rm -rf build docs/public
 	rm -f rclone rclonetest/rclonetest
+	rm -fr fakeroot
 
 website:
 	cd docs && hugo
